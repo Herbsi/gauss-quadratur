@@ -36,6 +36,7 @@
 
 (defun fixed-point (f x0)
   (declare (type double-float x0))
+  (declare (optimize (speed 3)))
   (iter
     (for k from 1 to 10000)
     (for y0 initially x0 then yk)
