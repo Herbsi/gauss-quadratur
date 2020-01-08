@@ -59,13 +59,9 @@ def _int_weights(roots):
     ]
 
 
-def gauss_quadratur(n):
+def gauss_quadratur(f, n):
     """Approximate the integral of f on the interval [-1,1] using
     Gauss-Quadrature and (n+1) 'Stützstellen'"""
     roots = _legendre_roots(n)
     weights = _int_weights(roots)
-
-    def intern(f):
-        return sum((f(roots[k]) * weights[k] for k in range(0, n + 1)))
-
-    return intern
+    return sum((f(roots[k]) * weights[k] for k in range(0, n + 1)))
