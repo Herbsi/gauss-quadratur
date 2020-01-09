@@ -13,9 +13,9 @@
      (lambda (x)
        (iter
          (for l from 2 to k)
-         (for x-2 initially 1 then x-1)      ; value of (k-2)th LP(x)
-         (for x-1 initially x then x-0)      ; value of (k-1)th LP(x)
-         (for x-0 next                       ; value of kth LP(x)
+         (for x-2 previous x-1 initially 1)      ; value of (k-2)th LP(x)
+         (for x-1 previous x-0 initially x)      ; value of (k-1)th LP(x)
+         (for x-0 next                           ; value of kth LP(x)
               (/ (- (* (1- (* 2 l)) x x-1)
                     (* (1- l) x-2))
                  l))
@@ -31,10 +31,10 @@ of the k'th Legendre Polynomial"
      (lambda (x)
        (iter
          (for l from 2 to k)
-         (for x1-2 initially 0 then x1-1)                ; value of (l-2)th LP'(x)
-         (for x1-1 initially 1 then x1-0)                ; value of (l-1)th LP'(x)
-         (for x-1 next (funcall (legendre (1- l)) x))    ; value of (l-1)th LP(x)
-         (for x1-0 next                                  ; value of l th LP'(x)
+         (for x-1 next (funcall (legendre (1- l)) x))        ; value of (l-1)th LP(x)
+         (for x1-2 previous x1-1 initially 0)                ; value of (l-2)th LP'(x)
+         (for x1-1 previous x1-0 initially 1)                ; value of (l-1)th LP'(x)
+         (for x1-0 next                                      ; value of l th LP'(x)
               (/ (- (* (1- (* 2 l)) (+ (* x x1-1) x-1))
                     (* (1- l) x1-2))
                  l))
@@ -45,7 +45,7 @@ of the k'th Legendre Polynomial"
   (declare (optimize (speed 3)))
   (iter
     (for k from 1 to 10000)
-    (for y0 initially x0 then yk)
+    (for y0 previous yk initially x0)
     (for yk next (funcall f y0))
     (finally (return yk))))
 
