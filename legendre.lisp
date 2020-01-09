@@ -1,71 +1,44 @@
 (ql:quickload :iterate)
 (use-package 'iter)
-
-(load "polynomial.lisp")
-
-;; Some trial and error showed that for values bigger than 8
-;; calculation errors in evaluating polynomials become significant
-(defvar *use-polynomials-up-to* 8)
-
-(defvar *legendre-polynomials* (make-hash-table))
-(setf (gethash 0 *legendre-polynomials*) (make-poly 1)
-      (gethash 1 *legendre-polynomials*) (make-poly 0 1))
-(defun legendre-polynomial (k)
-  "Returns the k'th Legendre Polyonmial"
-  (if (gethash k *legendre-polynomials*)
-      (gethash k *legendre-polynomials*)
-      (let ((new-polynomial
-              (*p
-               (-p (*p (make-poly 0 1)
-                       (legendre-polynomial (- k 1))
-                       (- (* 2 k) 1))
-                   (*p (legendre-polynomial (- k 2)) (- k 1)))
-               (/ 1 k))))
-        (setf (gethash k *legendre-polynomials*) new-polynomial))))
-
-(defvar *legendre-polynomials-1st-deriv* (make-hash-table))
-(defun legendre-polynomial-1st-deriv (k)
-  "Returns the first derivative of the k'th Legendre Polynomial"
-  (if (gethash k *legendre-polynomials-1st-deriv*)
-      (gethash k *legendre-polynomials-1st-deriv*)
-      (let ((new-polynomial (deriv-poly (gethash k *legendre-polynomials*))))
-        (setf (gethash k *legendre-polynomials-1st-deriv*) new-polynomial))))
+(ql:quickload :trivia)
+(use-package 'trivia)
+(in-optimizer :trivial)
 
 (defun legendre (k)
   "Returns a funktion that evaluates the k'th Legendre Polynomial at x"
-  (if (<= k *use-polynomials-up-to*)
-      (lambda (x) (eval-poly (legendre-polynomial k) x))
-      (lambda (x)
-        (iter
-          (for l from (1+ *use-polynomials-up-to*) to k)
-          (for x-2 initially (funcall (legendre (1- *use-polynomials-up-to*)) x)
-               then x-1)                ; value of (k-2)th LP(x)
-          (for x-1 initially (funcall (legendre *use-polynomials-up-to*) x)
-               then x-0)                ; value of (k-1)th LP(x)
-          (for x-0 next
-               (/ (- (* (1- (* 2 l)) x x-1)
-                     (* (1- l) x-2))
-                  l))                   ; value of kth LP(x)
-          (finally (return x-0))))))
+  (match k
+    (0 (lambda (x) 1))
+    (1 (lambda (x) x))
+    (k
+     (lambda (x)
+       (iter
+         (for l from 2 to k)
+         (for x-2 initially 1 then x-1)      ; value of (k-2)th LP(x)
+         (for x-1 initially x then x-0)      ; value of (k-1)th LP(x)
+         (for x-0 next                       ; value of kth LP(x)
+              (/ (- (* (1- (* 2 l)) x x-1)
+                    (* (1- l) x-2))
+                 l))
+         (finally (return x-0)))))))
 
 (defun legendre-1st-deriv (k)
   "Returns a function that evaluates the first derivative
 of the k'th Legendre Polynomial"
-  (if (<= k *use-polynomials-up-to*)
-      (lambda (x) (eval-poly (legendre-polynomial-1st-deriv k) x))
-      (lambda (x)
-        (iter
-          (for l from (1+ *use-polynomials-up-to*) to k)
-          (for x1-2 initially (funcall (legendre-1st-deriv (1- *use-polynomials-up-to*)) x)
-               then x1-1)               ; value of (l-2)th LP'(x)
-          (for x1-1 initially (funcall (legendre-1st-deriv *use-polynomials-up-to*) x)
-               then x1-0)                              ; value of (l-1)th LP'(x)
-          (for x-1 next (funcall (legendre (1- l)) x)) ; value of (l-1)th LP(x)
-          (for x1-0 next                               ; value of l th LP'(x)
-               (/ (- (* (1- (* 2 l)) (+ (* x x1-1) x-1))
-                     (* (1- l) x1-2))
-                  l))
-          (finally (return x1-0))))))
+  (match k
+    (0 (lambda (x) 0))
+    (1 (lambda (x) 1))
+    (k
+     (lambda (x)
+       (iter
+         (for l from 2 to k)
+         (for x1-2 initially 0 then x1-1)                ; value of (l-2)th LP'(x)
+         (for x1-1 initially 1 then x1-0)                ; value of (l-1)th LP'(x)
+         (for x-1 next (funcall (legendre (1- l)) x))    ; value of (l-1)th LP(x)
+         (for x1-0 next                                  ; value of l th LP'(x)
+              (/ (- (* (1- (* 2 l)) (+ (* x x1-1) x-1))
+                    (* (1- l) x1-2))
+                 l))
+         (finally (return x1-0)))))))
 
 (defun fixed-point (f x0)
   (declare (type double-float x0))
@@ -77,10 +50,8 @@ of the k'th Legendre Polynomial"
     (finally (return yk))))
 
 (defun newton-method (f df x0)
-  (declare (type double-float x0))
   (flet ((newton-transform (g dg)
            (lambda (x)
-             (declare (type double-float x))
              (- x (/ (funcall g x) (funcall dg x))))))
     (fixed-point (newton-transform f df) x0)))
 
