@@ -3,11 +3,15 @@
 
 (load "polynomial.lisp")
 
+;; Some trial and error showed that for values bigger than 8
+;; calculation errors in evaluating polynomials become significant
+(defvar *use-polynomials-up-to* 8)
+
 (defvar *legendre-polynomials* (make-hash-table))
 (setf (gethash 0 *legendre-polynomials*) (make-poly 1)
       (gethash 1 *legendre-polynomials*) (make-poly 0 1))
-
 (defun legendre-polynomial (k)
+  "Returns the k'th Legendre Polyonmial"
   (if (gethash k *legendre-polynomials*)
       (gethash k *legendre-polynomials*)
       (let ((new-polynomial
@@ -17,22 +21,51 @@
                        (- (* 2 k) 1))
                    (*p (legendre-polynomial (- k 2)) (- k 1)))
                (/ 1 k))))
-        (setf (gethash k *legendre-polynomials*) new-polynomial)
-        new-polynomial)))
+        (setf (gethash k *legendre-polynomials*) new-polynomial))))
 
 (defvar *legendre-polynomials-1st-deriv* (make-hash-table))
 (defun legendre-polynomial-1st-deriv (k)
+  "Returns the first derivative of the k'th Legendre Polynomial"
   (if (gethash k *legendre-polynomials-1st-deriv*)
       (gethash k *legendre-polynomials-1st-deriv*)
       (let ((new-polynomial (deriv-poly (gethash k *legendre-polynomials*))))
-        (setf (gethash k *legendre-polynomials-1st-deriv*) new-polynomial)
-        new-polynomial)))
+        (setf (gethash k *legendre-polynomials-1st-deriv*) new-polynomial))))
 
 (defun legendre (k)
-  (lambda (x) (eval-poly (legendre-polynomial k) x)))
+  "Returns a funktion that evaluates the k'th Legendre Polynomial at x"
+  (if (<= k *use-polynomials-up-to*)
+      (lambda (x) (eval-poly (legendre-polynomial k) x))
+      (lambda (x)
+        (iter
+          (for l from (1+ *use-polynomials-up-to*) to k)
+          (for x-2 initially (funcall (legendre (1- *use-polynomials-up-to*)) x)
+               then x-1)                ; value of (k-2)th LP(x)
+          (for x-1 initially (funcall (legendre *use-polynomials-up-to*) x)
+               then x-0)                ; value of (k-1)th LP(x)
+          (for x-0 next
+               (/ (- (* (1- (* 2 l)) x x-1)
+                     (* (1- l) x-2))
+                  l))                   ; value of kth LP(x)
+          (finally (return x-0))))))
 
 (defun legendre-1st-deriv (k)
-  (lambda (x) (eval-poly (legendre-polynomial-1st-deriv k) x)))
+  "Returns a function that evaluates the first derivative
+of the k'th Legendre Polynomial"
+  (if (<= k *use-polynomials-up-to*)
+      (lambda (x) (eval-poly (legendre-polynomial-1st-deriv k) x))
+      (lambda (x)
+        (iter
+          (for l from (1+ *use-polynomials-up-to*) to k)
+          (for x1-2 initially (funcall (legendre-1st-deriv (1- *use-polynomials-up-to*)) x)
+               then x1-1)               ; value of (l-2)th LP'(x)
+          (for x1-1 initially (funcall (legendre-1st-deriv *use-polynomials-up-to*) x)
+               then x1-0)                              ; value of (l-1)th LP'(x)
+          (for x-1 next (funcall (legendre (1- l)) x)) ; value of (l-1)th LP(x)
+          (for x1-0 next                               ; value of l th LP'(x)
+               (/ (- (* (1- (* 2 l)) (+ (* x x1-1) x-1))
+                     (* (1- l) x1-2))
+                  l))
+          (finally (return x1-0))))))
 
 (defun fixed-point (f x0)
   (declare (type double-float x0))
@@ -80,10 +113,6 @@
         (sum (* (funcall f root) weight))))))
 
 (defconstant +actual-value+ (the double-float (- (log 27.0d0) 2)))
-
-;; Somehow during polynomial evaluation rounding errors kreep up
-;; in the last 4 decimal digits or so, preventing precision past 10e-12 unfortunately
-;; I have no idea why that happens or how to prevent it
 
 (iter
   (for n in (list 2 4 8 16))
