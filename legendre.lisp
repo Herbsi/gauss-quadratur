@@ -56,23 +56,21 @@ of the k'th Legendre Polynomial"
     (fixed-point (newton-transform f df) x0)))
 
 (defun legendre-roots (n)
-  (let ((lp (legendre (1+ n)))
-        (lp1 (legendre-1st-deriv (1+ n))))
-    (iter
-      (for k from 0 to n)
-      (collect
-          (let ((x0 (cos (/
-                          (* (+ (* 4 k) 3) pi)
-                          (+ (* 4 n) 6)))))
-            (newton-method lp lp1 x0))))))
+  (iter
+    (for k from 0 to n)
+    (for x0 next (cos (/
+                        (* (+ (* 4 k) 3) pi)
+                        (+ (* 4 n) 6))))
+    (collect (newton-method (legendre (1+ n))
+                            (legendre-1st-deriv (1+ n))
+                            x0))))
 
 (defun integration-weight (roots)
-  (let* ((n (- (length roots) 1))
-         (lp (legendre n)))
+  (let ((n (1- (length roots))))
     (iter (for xk in roots)
       (collect (/
                 (* 2 (- 1 (expt xk 2)))
-                (* (expt (+ n 1) 2) (expt (funcall lp xk) 2)))))))
+                (* (expt (+ n 1) 2) (expt (funcall (legendre n) xk) 2)))))))
 
 (defun gauss-quadratur (n)
   (let* ((roots (legendre-roots n))
