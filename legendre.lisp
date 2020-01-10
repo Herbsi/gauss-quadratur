@@ -13,9 +13,9 @@
      (lambda (x)
        (iter
          (for l from 2 to k)
-         (for x-2 previous x-1 initially 1)      ; value of (k-2)th LP(x)
-         (for x-1 previous x-0 initially x)      ; value of (k-1)th LP(x)
-         (for x-0 next                           ; value of kth LP(x)
+         (for x-2 previous x-1 initially 1)      ; value of (l-2)th LP(x)
+         (for x-1 previous x-0 initially x)      ; value of (l-1)th LP(x)
+         (for x-0 next                           ; value of lth LP(x)
               (/ (- (* (1- (* 2 l)) x x-1)
                     (* (1- l) x-2))
                  l))
@@ -58,9 +58,8 @@ of the k'th Legendre Polynomial"
 (defun legendre-roots (n)
   (iter
     (for k from 0 to n)
-    (for x0 next (cos (/
-                        (* (+ (* 4 k) 3) pi)
-                        (+ (* 4 n) 6))))
+    (for x0 next (cos (/ (* (+ (* 4 k) 3) pi)
+                         (+ (* 4 n) 6))))
     (collect (newton-method (legendre (1+ n))
                             (legendre-1st-deriv (1+ n))
                             x0))))
@@ -68,9 +67,9 @@ of the k'th Legendre Polynomial"
 (defun integration-weight (roots)
   (let ((n (1- (length roots))))
     (iter (for xk in roots)
-      (collect (/
-                (* 2 (- 1 (expt xk 2)))
-                (* (expt (+ n 1) 2) (expt (funcall (legendre n) xk) 2)))))))
+          (collect (/ (* 2 (- 1 (expt xk 2)))
+                      (* (expt (+ n 1) 2)
+                         (expt (funcall (legendre n) xk) 2)))))))
 
 (defun gauss-quadratur (n)
   (let* ((roots (legendre-roots n))
@@ -85,8 +84,7 @@ of the k'th Legendre Polynomial"
 
 (iter
   (for n in (list 2 4 8 16))
-  (for int next (funcall (gauss-quadratur n) (lambda (x)
-                                               (declare (type double-float x))
+  (for int next (funcall (gauss-quadratur n) (lambda (x) (declare (type double-float x))
                                                (log (+ x 2)))))
   (for err next (abs (- int +actual-value+)))
   (format t "n: ~2,,d     int: ~,17E     err: ~,17E~%" n int err))
