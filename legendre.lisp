@@ -44,7 +44,7 @@ of the k'th Legendre Polynomial"
   (declare (type double-float x0))
   (declare (optimize (speed 3)))
   (iter
-    (for k from 1 to 10000)
+    (repeat 10000)
     (for y0 previous yk initially x0)
     (for yk next (funcall f y0))
     (finally (return yk))))
