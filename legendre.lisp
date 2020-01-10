@@ -13,6 +13,7 @@
     (0 (lambda (x) 1))
     (1 (lambda (x) x))
     (k (lambda (x)
+         (declare (double-float x))
          (iter
            (for l from 2 to k)
            (for x-2 previous x-1 initially 1) ; value of (l-2)th LP(x)
@@ -33,6 +34,7 @@ of the k'th Legendre Polynomial"
     (0 (lambda (x) 0))
     (1 (lambda (x) 1))
     (k (lambda (x)
+         (declare (double-float x))
          (iter
            (for l from 2 to k)
            (for x-1 = (funcall (legendre (1- l)) x)) ; value of (l-1)th LP(x)
@@ -45,8 +47,9 @@ of the k'th Legendre Polynomial"
            (finally (return x1-0)))))))
 
 (defun fixed-point (f x0)
-  (declare (type double-float x0))
-  (declare (optimize (speed 3)))
+  (declare
+   (double-float x0)
+   (optimize (speed 3)))
   (iter
     (repeat 10000)
     (for y0 previous yk initially x0)
