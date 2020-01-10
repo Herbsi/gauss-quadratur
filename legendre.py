@@ -59,8 +59,8 @@ def _newton_iteration(f, f_deriv, x0):
     for _ in range(10000):
         # prevent lack of sufficient convergence
         xk = x0 - (f(x0) / f_deriv(x0))
-        # if abs(xk - x0) < 1e-15:
-        #     return xk
+        if abs(xk - x0) < 1e-15:
+            return xk
         x0 = xk
     return xk
 

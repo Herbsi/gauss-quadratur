@@ -45,6 +45,8 @@ of the k'th Legendre Polynomial"
     (repeat 10000)
     (for y0 previous yk initially x0)
     (for yk = (funcall f y0))
+    (if (< (abs (- yk y0)) 1.0d-15)
+        (return yk))
     (finally (return yk))))
 
 (defun newton-method (f df x0)
