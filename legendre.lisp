@@ -5,6 +5,9 @@
 (in-optimizer :trivial)
 
 (defun legendre (k)
+  (declare
+   (optimize (speed 3))
+   (sb-ext:muffle-conditions cl:style-warning))
   "Returns a funktion that evaluates the k'th Legendre Polynomial at x"
   (match k
     (0 (lambda (x) 1))
@@ -23,6 +26,9 @@
 (defun legendre-1st-deriv (k)
   "Returns a function that evaluates the first derivative
 of the k'th Legendre Polynomial"
+  (declare
+   (optimize (speed 3))
+   (sb-ext:muffle-conditions cl:style-warning))
   (match k
     (0 (lambda (x) 0))
     (1 (lambda (x) 1))
@@ -45,8 +51,7 @@ of the k'th Legendre Polynomial"
     (repeat 10000)
     (for y0 previous yk initially x0)
     (for yk = (funcall f y0))
-    (if (< (abs (- yk y0)) 1.0d-15)
-        (return yk))
+    (until (< (abs (- yk y0)) 1.0d-15))
     (finally (return yk))))
 
 (defun newton-method (f df x0)
@@ -82,11 +87,11 @@ of the k'th Legendre Polynomial"
 
 (defconstant +actual-value+ (the double-float (- (log 27.0d0) 2)))
 
-(iter
-  (with f = (lambda (x)
-              (declare (type double-float x))
-              (log (+ x 2))))
-  (for n in (list 2 4 8 16))
-  (for int = (funcall (gauss-quadratur n) f))
-  (for err = (abs (- int +actual-value+)))
-  (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" n int err))
+(time (iter
+        (with f = (lambda (x)
+                    (declare (type double-float x))
+                    (log (+ x 2))))
+        (for n in (list 2 4 8 16))
+        (for int = (funcall (gauss-quadratur n) f))
+        (for err = (abs (- int +actual-value+)))
+        (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" n int err)))
