@@ -15,7 +15,7 @@
          (for l from 2 to k)
          (for x-2 previous x-1 initially 1)      ; value of (l-2)th LP(x)
          (for x-1 previous x-0 initially x)      ; value of (l-1)th LP(x)
-         (for x-0 next                           ; value of lth LP(x)
+         (for x-0 =                           ; value of lth LP(x)
               (/ (- (* (1- (* 2 l)) x x-1)
                     (* (1- l) x-2))
                  l))
@@ -31,10 +31,10 @@ of the k'th Legendre Polynomial"
      (lambda (x)
        (iter
          (for l from 2 to k)
-         (for x-1 next (funcall (legendre (1- l)) x))        ; value of (l-1)th LP(x)
+         (for x-1 = (funcall (legendre (1- l)) x))        ; value of (l-1)th LP(x)
          (for x1-2 previous x1-1 initially 0)                ; value of (l-2)th LP'(x)
          (for x1-1 previous x1-0 initially 1)                ; value of (l-1)th LP'(x)
-         (for x1-0 next                                      ; value of l th LP'(x)
+         (for x1-0 =                                      ; value of l th LP'(x)
               (/ (- (* (1- (* 2 l)) (+ (* x x1-1) x-1))
                     (* (1- l) x1-2))
                  l))
@@ -46,7 +46,7 @@ of the k'th Legendre Polynomial"
   (iter
     (repeat 10000)
     (for y0 previous yk initially x0)
-    (for yk next (funcall f y0))
+    (for yk = (funcall f y0))
     (finally (return yk))))
 
 (defun newton-method (f df x0)
@@ -58,7 +58,7 @@ of the k'th Legendre Polynomial"
 (defun legendre-roots (n)
   (iter
     (for k from 0 to n)
-    (for x0 next (cos (/ (* (+ (* 4 k) 3) pi)
+    (for x0 = (cos (/ (* (+ (* 4 k) 3) pi)
                          (+ (* 4 n) 6))))
     (collect (newton-method (legendre (1+ n))
                             (legendre-1st-deriv (1+ n))
@@ -84,7 +84,7 @@ of the k'th Legendre Polynomial"
 
 (iter
   (for n in (list 2 4 8 16))
-  (for int next (funcall (gauss-quadratur n) (lambda (x) (declare (type double-float x))
+  (for int = (funcall (gauss-quadratur n) (lambda (x) (declare (type double-float x))
                                                (log (+ x 2)))))
-  (for err next (abs (- int +actual-value+)))
+  (for err = (abs (- int +actual-value+)))
   (format t "n: ~2,,d     int: ~,17E     err: ~,17E~%" n int err))
