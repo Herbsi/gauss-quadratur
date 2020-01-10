@@ -73,11 +73,11 @@ of the k'th Legendre Polynomial"
                             x0))))
 
 (defun integration-weight (roots)
-  (let ((n (1- (length roots))))
-    (iter (for xk in roots)
-          (collect (/ (* 2 (- 1 (expt xk 2)))
-                      (* (expt (+ n 1) 2)
-                         (expt (funcall (legendre n) xk) 2)))))))
+  (iter (for xk in roots)
+    (with n = (1- (length roots)))
+    (collect (/ (* 2 (- 1 (expt xk 2)))
+                (* (expt (+ n 1) 2)
+                   (expt (funcall (legendre n) xk) 2))))))
 
 (defun gauss-quadratur (n)
   (let* ((roots (legendre-roots n))
