@@ -5,8 +5,9 @@
 (use-package 'iter)
 
 (defun make-poly (&rest coefficients)
-  (if (null coefficients) (list 0)
-      (mklist coefficients) ))
+  (if (null coefficients)
+      (list 0)
+      (mklist coefficients)))
 
 (defun degree (p)
   (1- (length p)))
@@ -17,29 +18,27 @@
     0))
 
 (defun +p (&rest rest)
-  (let ((internal-+ (lambda (p q)
-                      (iter
-                       (for pk in p)
-                       (for qk in q)
-                       (for i upfrom 1)
-                       (collect (+ pk qk) into acc)
-                       (finally (return (append acc (subseq p i) (subseq q i))))))))
-    (reduce internal-+ (mapcar #'make-poly rest) :initial-value (make-poly 0))))
+  (flet ((internal-+ (p q)
+           (iter
+            (for pk in p)
+            (for qk in q)
+            (for i upfrom 1)
+            (collect (+ pk qk) into acc)
+            (finally (return (append acc (subseq p i) (subseq q i)))))))
+    (reduce #'internal-+ (mapcar #'make-poly rest) :initial-value (make-poly 0))))
 
 (defun -p (p &rest rest)
   (+p p (mapcar #'- (apply #'+p rest))))
 
 (defun *p (&rest rest)
-  (let ((internal-*
-          (lambda (p q)
-            (let ((new-degree (+ (degree p) (degree q))))
-              (flet ((kth-coeff (k)
-                       (iter (for l from 0 to k)
-                         (sum (* (nth-coefficient l p)
-                                 (nth-coefficient (- k l) q))))))
-                (iter (for k from 0 to new-degree)
-                  (collect (kth-coeff k))))))))
-    (reduce internal-* (mapcar #'make-poly rest) :initial-value (make-poly 1))))
+  (flet ((internal-* (p q)
+           (let ((new-degree (+ (degree p) (degree q))))
+             (flet ((kth-coeff (k)
+                      (iter (for l from 0 to k)
+                            (sum (* (nth-coefficient l p)
+                                    (nth-coefficient (- k l) q))))))
+               (map0-n #'kth-coeff new-degree)))))
+    (reduce #'internal-* (mapcar #'make-poly rest) :initial-value (make-poly 1))))
 
 (defun deriv-poly (p)
   (iter

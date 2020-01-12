@@ -91,15 +91,15 @@ of the k'th Legendre Polynomial"
          (sum (* (funcall f root) weight))))))
 
 (defconstant +actual-value+ (the double-float (- (log 27.0d0) 2)))
+
 (defmacro output (f &rest rest)
   `(progn
      ,@(mapcar
-        (lambda (m)
+        (lambda (n)
           (alexandria:with-gensyms (int err)
-            `(let* ((,int (funcall (gauss-quadratur ,m) #',f))
+            `(let* ((,int (funcall (gauss-quadratur ,n) #',f))
                     (,err (abs (- ,int +actual-value+))))
-               (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" ,m ,int ,err))))
+               (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" ,n ,int ,err))))
         rest)))
 
-(defun main ()
-  (output (lambda (x) (log (+ x 2))) 2 4 8 16))
+(time (output (lambda (x) (log (+ x 2))) 2 4 8 16))
