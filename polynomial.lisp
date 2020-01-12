@@ -1,20 +1,21 @@
 (ql:quickload :herwigs-cl-utilities)
 (use-package 'herwig)
+(ql:quickload :alexandria)
 (ql:quickload :iterate)
 (use-package 'iter)
 
 (defun make-poly (&rest coefficients)
-  (if (null coefficients)
-      (list 0)
-      coefficients))
+  (cond ((null coefficients) (list 0))
+        ((consp (car coefficients)) (car coefficients)) ; prevent nesting
+        (t coefficients)))
 
 (defun degree (p)
   (1- (length p)))
 
 (defun nth-coefficient (n p)
-  (if (<= n (degree p))
-      (nth n p)
-      0))
+  (alexandria:if-let ((a (nth n p)))
+    a
+    0))
 
 (defun +p (&rest rest)
   (let ((internal-+ (lambda (p q)
