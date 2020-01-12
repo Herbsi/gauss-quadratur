@@ -5,9 +5,8 @@
 (use-package 'iter)
 
 (defun make-poly (&rest coefficients)
-  (cond ((null coefficients) (list 0))
-        ((consp (car coefficients)) (car coefficients)) ; prevent nesting
-        (t coefficients)))
+  (if (null coefficients) (list 0)
+      (mklist coefficients) ))
 
 (defun degree (p)
   (1- (length p)))
@@ -20,12 +19,12 @@
 (defun +p (&rest rest)
   (let ((internal-+ (lambda (p q)
                       (iter
-                        (for pk in p)
-                        (for qk in q)
-                        (for i upfrom 1)
-                        (collect (+ pk qk) into acc)
-                        (finally (return (append acc (subseq p i) (subseq q i))))))))
-    (reduce internal-+ (mapcar #'mklist rest) :initial-value (make-poly 0))))
+                       (for pk in p)
+                       (for qk in q)
+                       (for i upfrom 1)
+                       (collect (+ pk qk) into acc)
+                       (finally (return (append acc (subseq p i) (subseq q i))))))))
+    (reduce internal-+ (mapcar #'make-poly rest) :initial-value (make-poly 0))))
 
 (defun -p (p &rest rest)
   (+p p (mapcar #'- (apply #'+p rest))))
@@ -40,7 +39,7 @@
                                  (nth-coefficient (- k l) q))))))
                 (iter (for k from 0 to new-degree)
                   (collect (kth-coeff k))))))))
-    (reduce internal-* (mapcar #'mklist rest))))
+    (reduce internal-* (mapcar #'make-poly rest) :initial-value (make-poly 1))))
 
 (defun deriv-poly (p)
   (iter
