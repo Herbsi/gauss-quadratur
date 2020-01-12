@@ -1,4 +1,5 @@
 (ql:quickload :iterate)
+(ql:quickload :alexandria)
 (use-package 'iter)
 (ql:quickload :trivia)
 (use-package 'trivia)
@@ -64,37 +65,41 @@ of the k'th Legendre Polynomial"
     (fixed-point (newton-transform f df) x0)))
 
 (defun legendre-roots (n)
-  (iter
-    (for k from 0 to n)
-    (for x0 = (cos (/ (* (+ (* 4 k) 3) pi)
-                         (+ (* 4 n) 6))))
-    (collect (newton-method (legendre (1+ n))
-                            (legendre-1st-deriv (1+ n))
-                            x0))))
+  `(list ,@(iter
+             (for k from 0 to n)
+             (for x0 = (cos (/ (* (+ (* 4 k) 3) pi)
+                               (+ (* 4 n) 6))))
+             (collect (newton-method (legendre (1+ n))
+                                     (legendre-1st-deriv (1+ n))
+                                     x0)))))
 
 (defun integration-weight (roots)
-  (iter (for xk in roots)
-    (with n = (1- (length roots)))
-    (collect (/ (* 2 (- 1 (expt xk 2)))
-                (* (expt (+ n 1) 2)
-                   (expt (funcall (legendre n) xk) 2))))))
+  `(list ,@(iter
+             (for xk in roots)
+             (with n = (1- (length roots)))
+             (collect (/ (* 2 (- 1 (expt xk 2)))
+                         (* (expt (+ n 1) 2)
+                            (expt (funcall (legendre n) xk) 2)))))))
 
-(defun gauss-quadratur (n)
+(defmacro gauss-quadratur (n)
   (let* ((roots (legendre-roots n))
-         (weights (integration-weight roots)))
-    (lambda (f)
-      (iter
-        (for root in roots)
-        (for weight in weights)
-        (sum (* (funcall f root) weight))))))
+         (weights (integration-weight (cdr roots))))
+    `(lambda (f)
+       (iter
+         (for root in ,roots)
+         (for weight in ,weights)
+         (sum (* (funcall f root) weight))))))
 
 (defconstant +actual-value+ (the double-float (- (log 27.0d0) 2)))
+(defmacro output (f &rest rest)
+  `(progn
+     ,@(mapcar
+        (lambda (m)
+          (alexandria:with-gensyms (int err)
+            `(let* ((,int (funcall (gauss-quadratur ,m) #',f))
+                    (,err (abs (- ,int +actual-value+))))
+               (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" ,m ,int ,err))))
+        rest)))
 
-(time (iter
-        (with f = (lambda (x)
-                    (declare (type double-float x))
-                    (log (+ x 2))))
-        (for n in (list 2 4 8 16))
-        (for int = (funcall (gauss-quadratur n) f))
-        (for err = (abs (- int +actual-value+)))
-        (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" n int err)))
+(defun main ()
+  (output (lambda (x) (log (+ x 2))) 2 4 8 16))
