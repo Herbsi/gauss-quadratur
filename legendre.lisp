@@ -65,29 +65,29 @@ of the k'th Legendre Polynomial"
     (fixed-point (newton-transform f df) x0)))
 
 (defun legendre-roots (n)
-  `(list ,@(iter
-             (for k from 0 to n)
-             (for x0 = (cos (/ (* (+ (* 4 k) 3) pi)
-                               (+ (* 4 n) 6))))
-             (collect (newton-method (legendre (1+ n))
-                                     (legendre-1st-deriv (1+ n))
-                                     x0)))))
+  (iter
+    (for k from 0 to n)
+    (for x0 = (cos (/ (* (+ (* 4 k) 3) pi)
+                      (+ (* 4 n) 6))))
+    (collect (newton-method (legendre (1+ n))
+                            (legendre-1st-deriv (1+ n))
+                            x0))))
 
 (defun integration-weight (roots)
-  `(list ,@(iter
-             (for xk in roots)
-             (with n = (1- (length roots)))
-             (collect (/ (* 2 (- 1 (expt xk 2)))
-                         (* (expt (+ n 1) 2)
-                            (expt (funcall (legendre n) xk) 2)))))))
+  (iter
+    (for xk in roots)
+    (with n = (1- (length roots)))
+    (collect (/ (* 2 (- 1 (expt xk 2)))
+                (* (expt (+ n 1) 2)
+                   (expt (funcall (legendre n) xk) 2))))))
 
 (defmacro gauss-quadratur (n)
   (let* ((roots (legendre-roots n))
-         (weights (integration-weight (cdr roots))))
+         (weights (integration-weight roots)))
     `(lambda (f)
        (iter
-         (for root in ,roots)
-         (for weight in ,weights)
+         (for root in (list ,@roots))
+         (for weight in (list ,@weights))
          (sum (* (funcall f root) weight))))))
 
 (defconstant +actual-value+ (the double-float (- (log 27.0d0) 2)))
