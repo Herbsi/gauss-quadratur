@@ -90,15 +90,17 @@ of the k'th Legendre Polynomial"
         (for weight in weights)
         (sum (* (funcall f root) weight))))))
 
-(defmacro main (number-of-supports)
-  `(list ,@(mapcar
-            (lambda (n)
-              (let* ((int (funcall (gauss-quadratur n) (lambda (x) (log (+ x 2.0d0)))))
-                     (err (abs (- int (- (log 27.0d0) 2)))))
-                `(cons ,int ,err)))
-            number-of-supports)))
+(defmacro define-integrator (name fn int-value)
+  (alexandria:with-gensyms (supports)
+    `(defmacro ,name (,supports)
+       `(list ,@(mapcar
+                 (lambda (n)
+                   (let* ((int (funcall (gauss-quadratur n) #',fn))
+                          (err (abs (- int ,int-value))))
+                     `(cons ,int ,err)))
+                 ,supports)))))
 
-;; TODO remove hard-coded lambda and actual value from main macro
+(define-integrator main (lambda (x) (log (+ x 2.0d0))) (- (log 27.0d0) 2))
 
 (let ((result (time (main (2 4 8 16)))))
   (iter
