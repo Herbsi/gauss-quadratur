@@ -91,17 +91,14 @@ of the k'th Legendre Polynomial"
         (sum (* (funcall f root) weight))))))
 
 (defmacro main (number-of-supports)
-  (alexandria:with-gensyms (acc)
-    `(let ((,acc nil))
-       ,@(mapcar
-          (lambda (n)
-            (let* ((int (funcall (gauss-quadratur n) (lambda (x) (log (+ x 2.0d0)))))
-                   (err (abs (- int (- (log 27.0d0) 2)))))
-                `(push (cons ,int ,err) ,acc)))
-          number-of-supports)
-       (nreverse ,acc))))
+  `(list ,@(mapcar
+            (lambda (n)
+              (let* ((int (funcall (gauss-quadratur n) (lambda (x) (log (+ x 2.0d0)))))
+                     (err (abs (- int (- (log 27.0d0) 2)))))
+                `(cons ,int ,err)))
+            number-of-supports)))
 
-;; should be possible to move function evaluation to compile time as well since it's known
+;; TODO remove hard-coded lambda and actual value from main macro
 
 (let ((result (time (main (2 4 8 16)))))
   (iter
