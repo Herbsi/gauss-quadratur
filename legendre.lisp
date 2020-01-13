@@ -90,16 +90,25 @@ of the k'th Legendre Polynomial"
          (for weight in (list ,@weights))
          (sum (* (funcall f root) weight))))))
 
-(defmacro main (f actual-value &rest rest)
-  `(progn
-     ,@(mapcar
-        (lambda (n)
-          (alexandria:with-gensyms (int err)
-            `(let* ((,int (funcall (gauss-quadratur ,n) #',f))
-                    (,err (abs (- ,int ,actual-value))))
-               (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" ,n ,int ,err))))
-        rest)))
+(defmacro main (function actual-value &rest rest)
+  (alexandria:with-gensyms (g-fn g-value acc)
+    `(let ((,g-fn #',function)
+           (,g-value ,actual-value)
+           (,acc nil))
+       ,@(mapcar
+          (lambda (n)
+            (alexandria:with-gensyms (int err)
+              `(let* ((,int (funcall (gauss-quadratur ,n) ,g-fn))
+                      (,err (abs (- ,int ,g-value))))
+                 (push (cons ,int ,err) ,acc)
+                 )))
+          rest)
+       (nreverse ,acc))))
 
-(time (main (lambda (x) (log (+ x 2)))
-            (- (log 27.0d0) 2)
-            2 4 8 16))
+(let ((result (time (main (lambda (x) (log (+ x 2)))
+                          (- (log 27.0d0) 2)
+                          2 4 8 16))))
+  (iter
+    (for n in '(2 4 8 16))
+    (for (int . err) in result)
+    (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" n int err)))
