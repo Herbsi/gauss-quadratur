@@ -1,29 +1,27 @@
 (ql:quickload :iterate)
 (ql:quickload :alexandria)
 (use-package 'iter)
-(ql:quickload :trivia)
-(use-package 'trivia)
-(in-optimizer :trivial)
 
 (defun legendre (k)
   (declare
    (optimize (speed 3))
    (sb-ext:muffle-conditions cl:style-warning))
   "Returns a funktion that evaluates the k'th Legendre Polynomial at x"
-  (match k
+  (case k
     (0 (lambda (x) 1))
     (1 (lambda (x) x))
-    (k (lambda (x)
-         (declare (double-float x))
-         (iter
-           (for l from 2 to k)
-           (for x-2 previous x-1 initially 1) ; value of (l-2)th LP(x)
-           (for x-1 previous x-0 initially x) ; value of (l-1)th LP(x)
-           (for x-0 =                         ; value of lth LP(x)
-                (/ (- (* (1- (* 2 l)) x x-1)
-                      (* (1- l) x-2))
-                   l))
-           (finally (return x-0)))))))
+    (otherwise
+     (lambda (x)
+       (declare (double-float x))
+       (iter
+        (for l from 2 to k)
+        (for x-2 previous x-1 initially 1)          ; value of (l-2)th LP(x)
+        (for x-1 previous x-0 initially x)          ; value of (l-1)th LP(x)
+        (for x-0 =                                  ; value of lth LP(x)
+             (/ (- (* (1- (* 2 l)) x x-1)
+                   (* (1- l) x-2))
+                l))
+        (finally (return x-0)))))))
 
 (defun legendre-1st-deriv (k)
   "Returns a function that evaluates the first derivative
@@ -31,21 +29,22 @@ of the k'th Legendre Polynomial"
   (declare
    (optimize (speed 3))
    (sb-ext:muffle-conditions cl:style-warning))
-  (match k
+  (case k
     (0 (lambda (x) 0))
     (1 (lambda (x) 1))
-    (k (lambda (x)
-         (declare (double-float x))
-         (iter
-           (for l from 2 to k)
-           (for x-1 = (funcall (legendre (1- l)) x)) ; value of (l-1)th LP(x)
-           (for x1-2 previous x1-1 initially 0)      ; value of (l-2)th LP'(x)
-           (for x1-1 previous x1-0 initially 1)      ; value of (l-1)th LP'(x)
-           (for x1-0 =                               ; value of l th LP'(x)
-                (/ (- (* (1- (* 2 l)) (+ (* x x1-1) x-1))
-                      (* (1- l) x1-2))
-                   l))
-           (finally (return x1-0)))))))
+    (otherwise
+     (lambda (x)
+       (declare (double-float x))
+       (iter
+        (for l from 2 to k)
+        (for x-1 = (funcall (legendre (1- l)) x))      ; value of (l-1)th LP(x)
+        (for x1-2 previous x1-1 initially 0)           ; value of (l-2)th LP'(x)
+        (for x1-1 previous x1-0 initially 1)           ; value of (l-1)th LP'(x)
+        (for x1-0 =                                    ; value of l th LP'(x)
+             (/ (- (* (1- (* 2 l)) (+ (* x x1-1) x-1))
+                   (* (1- l) x1-2))
+                l))
+        (finally (return x1-0)))))))
 
 (defun fixed-point (f x0)
   (declare
@@ -101,8 +100,8 @@ of the k'th Legendre Polynomial"
 
 (define-integrator main (lambda (x) (log (+ x 2.0d0))) (- (log 27.0d0) 2))
 
-(let ((result (time (main (2 4 8 16)))))
+(let ((result (time (main (2 4 8 16 32)))))
   (iter
-    (for n in '(2 4 8 16))
+    (for n in '(2 4 8 16 32))
     (for (int . err) in result)
     (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" n int err)))
