@@ -1,6 +1,7 @@
 (ql:quickload :iterate)
-(ql:quickload :alexandria)
 (use-package 'iter)
+(ql:quickload :alexandria)
+(use-package 'alexandria)
 
 (defun legendre (k)
   (declare
@@ -72,7 +73,7 @@ of the k'th Legendre Polynomial"
                             (legendre-1st-deriv (1+ n))
                             x0))))
 
-(defun integration-weight (roots)
+(defun integration-weights (roots)
   (iter
     (for xk in roots)
     (with n = (1- (length roots)))
@@ -80,9 +81,16 @@ of the k'th Legendre Polynomial"
                 (* (expt (+ n 1) 2)
                    (expt (funcall (legendre n) xk) 2))))))
 
+(defmacro lookup (table n set-if-not-found)
+  `(if (gethash ,n ,table)
+       (gethash ,n ,table)
+       (setf (gethash ,n ,table) ,set-if-not-found)))
+
+(defvar *cached-roots* (make-hash-table))
+(defvar *cached-weights* (make-hash-table))
 (defun gauss-quadratur (n)
-  (let* ((roots (legendre-roots n))
-         (weights (integration-weight roots)))
+  (let* ((roots (lookup *cached-roots* n (legendre-roots n)))
+         (weights (lookup *cached-weights* n (integration-weights roots))))
     (lambda (f)
       (iter
         (for root in roots)
@@ -105,3 +113,4 @@ of the k'th Legendre Polynomial"
     (for n in '(2 4 8 16 32))
     (for (int . err) in result)
     (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" n int err)))
+
