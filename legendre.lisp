@@ -86,16 +86,16 @@ of the k'th Legendre Polynomial"
        (gethash ,n ,table)
        (setf (gethash ,n ,table) ,set-if-not-found)))
 
-(defvar *cached-roots* (make-hash-table))
-(defvar *cached-weights* (make-hash-table))
-(defun gauss-quadratur (n)
-  (let* ((roots (lookup *cached-roots* n (legendre-roots n)))
-         (weights (lookup *cached-weights* n (integration-weights roots))))
-    (lambda (f)
-      (iter
-        (for root in roots)
-        (for weight in weights)
-        (sum (* (funcall f root) weight))))))
+(let ((cached-roots (make-hash-table))
+      (cached-weights (make-hash-table)))
+  (defun gauss-quadratur (n)
+    (let* ((roots (lookup cached-roots n (legendre-roots n)))
+           (weights (lookup cached-weights n (integration-weights roots))))
+      (lambda (f)
+        (iter
+         (for root in roots)
+         (for weight in weights)
+         (sum (* (funcall f root) weight)))))))
 
 (defmacro define-integrator (name fn int-value)
   `(defmacro ,name (supports)
