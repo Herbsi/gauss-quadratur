@@ -1,7 +1,7 @@
 (ql:quickload :iterate)
-(use-package 'iter)
+(use-package :iter)
 (ql:quickload :alexandria)
-(use-package 'alexandria)
+(use-package :alexandria)
 
 (defun legendre (k)
   (declare
@@ -52,11 +52,11 @@ of the k'th Legendre Polynomial"
    (double-float x0)
    (optimize (speed 3)))
   (iter
-    (repeat 10000)
-    (for y0 previous yk initially x0)
-    (for yk = (funcall f y0))
-    (until (< (abs (- yk y0)) 1.0d-15))
-    (finally (return yk))))
+   (repeat 10000)
+   (for y0 previous yk initially x0)
+   (for yk = (funcall f y0))
+   (until (< (abs (- yk y0)) 1.0d-15))
+   (finally (return yk))))
 
 (defun newton-method (f df x0)
   (flet ((newton-transform (g dg)
@@ -66,20 +66,20 @@ of the k'th Legendre Polynomial"
 
 (defun legendre-roots (n)
   (iter
-    (for k from 0 to n)
-    (for x0 = (cos (/ (* (+ (* 4 k) 3) pi)
-                      (+ (* 4 n) 6))))
-    (collect (newton-method (legendre (1+ n))
-                            (legendre-1st-deriv (1+ n))
-                            x0))))
+   (for k from 0 to n)
+   (for x0 = (cos (/ (* (+ (* 4 k) 3) pi)
+                     (+ (* 4 n) 6))))
+   (collect (newton-method (legendre (1+ n))
+                           (legendre-1st-deriv (1+ n))
+                           x0))))
 
 (defun integration-weights (roots)
   (iter
-    (for xk in roots)
-    (with n = (1- (length roots)))
-    (collect (/ (* 2 (- 1 (expt xk 2)))
-                (* (expt (+ n 1) 2)
-                   (expt (funcall (legendre n) xk) 2))))))
+   (for xk in roots)
+   (with n = (1- (length roots)))
+   (collect (/ (* 2 (- 1 (expt xk 2)))
+               (* (expt (+ n 1) 2)
+                  (expt (funcall (legendre n) xk) 2))))))
 
 (defmacro lookup (table n set-if-not-found)
   `(if (gethash ,n ,table)
@@ -106,11 +106,16 @@ of the k'th Legendre Polynomial"
                    `(cons ,int ,err)))
                supports))))
 
-(define-integrator main (lambda (x) (log (+ x 2.0d0))) (- (log 27.0d0) 2))
+(define-integrator herwig (lambda (x) (log (+ x 2.0d0))) (- (log 27.0d0) 2))
+(define-integrator joe (lambda (x) (/ 1 (+ 2 x))) (log 3.0d0))
 
-(let ((result (time (main (2 4 8 16 32)))))
-  (iter
-    (for n in '(2 4 8 16 32))
-    (for (int . err) in result)
-    (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" n int err)))
+(defmacro main (int n-values)
+  (alexandria:with-gensyms (gn gint gerr)
+    `(iter
+      (with result = (time (,int ,n-values)))
+      (for ,gn in (list ,@n-values))
+      (for (,gint . ,gerr) in result)
+      (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" ,gn ,gint ,gerr))))
 
+(main herwig (2 4 8 16 32))
+(main joe (2 4 8 16 32))
