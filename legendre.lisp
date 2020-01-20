@@ -98,13 +98,15 @@ of the k'th Legendre Polynomial"
           (sum (* (funcall f root) weight)))))))
 
 (defmacro define-integrator (name fn int-value)
-  `(defmacro ,name (supports)
-     `(list ,@(mapcar
-               (lambda (n)
-                 (let* ((int (funcall (gauss-quadratur n) #',fn))
-                        (err (abs (- int ,int-value))))
-                   `(cons ,int ,err)))
-               supports))))
+  (alexandria:with-gensyms (gint)
+    `(defmacro ,name (supports)
+       (let ((,gint ,int-value))
+         `(list ,@(mapcar
+                   (lambda (n)
+                     (let* ((int (funcall (gauss-quadratur n) #',fn))
+                            (err (abs (- int ,gint))))
+                       `(cons ,int ,err)))
+                   supports))))))
 
 (define-integrator herwig (lambda (x) (log (+ x 2.0d0))) (- (log 27.0d0) 2))
 (define-integrator joe (lambda (x) (/ 1 (+ 2 x))) (log 3.0d0))
