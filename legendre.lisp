@@ -4,10 +4,10 @@
 (use-package :alexandria)
 
 (defun legendre (k)
+  "Returns a funktion that evaluates the k'th Legendre Polynomial at x"
   (declare
    (optimize (speed 3))
    (sb-ext:muffle-conditions cl:style-warning))
-  "Returns a funktion that evaluates the k'th Legendre Polynomial at x"
   (case k
     (0 (lambda (x) 1))
     (1 (lambda (x) x))
