@@ -15,7 +15,8 @@
                (1 1)
                (otherwise 0))))
       `(defun ,name (,k)
-         (declare (sb-ext:muffle-conditions style-warning))
+         (declare (sb-ext:muffle-conditions style-warning)
+                  (optimize (speed 3)))
          (case ,k
            (0 (lambda (,x) ,(init-2 n)))
            (1 (lambda (,x) ,(init-1 n)))
