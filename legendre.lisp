@@ -1,53 +1,8 @@
 (ql:quickload :herwigs-cl-utilities)
-(use-package :herwig)
 (ql:quickload :iterate)
 (use-package :iter)
 (ql:quickload :alexandria)
-(use-package :alexandria)
 
-(defun legendre-0 (k)
-  "Returns a funktion that evaluates the k'th Legendre Polynomial at x"
-  (declare
-   (optimize (speed 3))
-   (sb-ext:muffle-conditions cl:style-warning))
-  (case k
-    (0 (lambda (x) 1))
-    (1 (lambda (x) x))
-    (otherwise
-     (lambda (x)
-       (declare (double-float x))
-       (iter
-         (for l from 2 to k)
-         (for x-2 previous x-1 initially 1)  ; value of (l-2)th LP(x)
-         (for x-1 previous x-0 initially x)  ; value of (l-1)th LP(x)
-         (for x-0 =                          ; value of lth LP(x)
-              (/ (- (* (1- (* 2 l)) x x-1)
-                    (* (1- l) x-2))
-                 l))
-         (finally (return x-0)))))))
-
-(defun legendre-1 (k)
-  "Returns a function that evaluates the first derivative
-of the k'th Legendre Polynomial"
-  (declare
-   (optimize (speed 3))
-   (sb-ext:muffle-conditions cl:style-warning))
-  (case k
-    (0 (lambda (x) 0))
-    (1 (lambda (x) 1))
-    (otherwise
-     (lambda (x)
-       (declare (double-float x))
-       (iter
-         (for l from 2 to k)
-         (for x-1 = (funcall (legendre-0 (1- l)) x)) ; value of (l-1)th LP(x)
-         (for x1-2 previous x1-1 initially 0)      ; value of (l-2)th LP'(x)
-         (for x1-1 previous x1-0 initially 1)      ; value of (l-1)th LP'(x)
-         (for x1-0 =                               ; value of l th LP'(x)
-              (/ (- (* (1- (* 2 l)) (+ (* x x1-1) x-1))
-                    (* (1- l) x1-2))
-                 l))
-         (finally (return x1-0)))))))
 (defmacro make-legendre (name &key ((:nth-derivative n) 0))
   (alexandria:with-gensyms (x k l)
     (flet ((init-2 (k)
@@ -60,8 +15,7 @@ of the k'th Legendre Polynomial"
                (1 1)
                (otherwise 0))))
       `(defun ,name (,k)
-         (declare (optimize (speed 3))
-                  (sb-ext:muffle-conditions style-warning))
+         (declare (sb-ext:muffle-conditions style-warning))
          (case ,k
            (0 (lambda (,x) ,(init-2 n)))
            (1 (lambda (,x) ,(init-1 n)))
@@ -69,17 +23,19 @@ of the k'th Legendre Polynomial"
             (lambda (,x)
               (declare (double-float ,x))
               (iter (for ,l from 2 to ,k)
-                ,@(let ((syms (group (map1-n #'gensym (* 3 (1+ n))) 3)))
+                ,@(let ((syms (herwig:group (herwig:map1-n #'gensym (* 3 (1+ n))) 3)))
                     (iter
                       (for k upfrom 0)
                       (for (x-0 x-1 x-2) in syms)
                       (appending
                        `((for ,x-2 previous ,x-1 initially ,(init-2 k))
                          (for ,x-1 previous ,x-0 initially ,(init-1 k))
-                         (for ,x-0 = (/ (- (* (1- (* 2 ,l)) (+ (* ,x ,x-1) ,@sofar))
-                                           (* (1- ,l) ,x-2)) ,l))) into acc)
+                         (for ,x-0 = (/ (- (* (- (* 2.0d0 ,l) 1.0d0) (+ (* ,x ,x-1) ,@sofar))
+                                           (* (- ,l 1.0d0) ,x-2)) ,l))) into acc)
                       (collect x-1 into sofar at start)
-                      (finally (return (append acc `((finally (return ,(nth (* 3 n) (flatten syms))))))))))))))))))
+                      (finally (return (append acc
+                                               `((finally (return ,(nth (* 3 n)
+                                                                        (alexandria:flatten syms))))))))))))))))))
 
 (make-legendre legendre-0)
 (make-legendre legendre-1 :nth-derivative 1)
@@ -91,10 +47,11 @@ of the k'th Legendre Polynomial"
   (flet ((good-enough? (xk xk-1)
            (< (abs (- xk xk-1)) 1.0d-15)))
     (iter
-      (repeat 10000)
+      (repeat 100)
       (for y0 previous yk initially x0)
+      (format t "~& ~a ~%" y0)
       (for yk = (funcall f y0))
-      (until (good-enough? yk y0))
+      (if (good-enough? yk y0) (return yk))
       (finally (return yk)))))
 
 (defun newton-method (f df x0)
