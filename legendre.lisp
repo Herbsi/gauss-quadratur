@@ -1,3 +1,5 @@
+(ql:quickload :herwigs-cl-utilities)
+(use-package :herwig)
 (ql:quickload :iterate)
 (use-package :iter)
 (ql:quickload :alexandria)
@@ -47,6 +49,29 @@ of the k'th Legendre Polynomial"
                  l))
          (finally (return x1-0)))))))
 
+(defun build-main-lambda (n var)
+  (let ((syms (group (map1-n #'gensym (* 3 (1+ n))) 3))
+        (l (gensym)))
+    (flet ((init-2 (k)
+             (case k
+               (0 1)
+               (otherwise 0)))
+           (init-1 (k)
+             (case k
+               (0 var)
+               (1 1)
+               (otherwise 0))))
+      (iter
+        (for k upfrom 0)
+        (for (x-2 x-1 x-0) in syms)
+        (appending
+         `((for ,x-2 previous ,x-1 initially ,(init-2 k))
+           (for ,x-1 previous ,x-0 initally ,(init-1 k))
+           (for ,x-0 = (/ (- (* (1- (* 2 ,l)) (+ (* ,var ,x-1) ,@sofar))
+                             (* (1- ,l) ,x-2)) ,l))))
+        (collect x-1 into sofar at start)))))
+
+
 ;; TODO
 ;; There's an abstraction here for reducing the two (very) similar legendre functions, but I don't quite see it yet
 ;; Maybe derive the legendre polynomials further and see if you find a pattern
@@ -57,8 +82,6 @@ of the k'th Legendre Polynomial"
 ;;
 ;; => write a macro that (legendre n), n >= 0 that creates n+1 functions (legendre-0,..,legendre-n) that
 ;; evaluate the polynomials using loops as above
-
-;; (defmacro legendre (k transform (&key case-0 case-1)))
 
 (defun fixed-point (f x0)
   (declare
