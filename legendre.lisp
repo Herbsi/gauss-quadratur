@@ -48,40 +48,41 @@ of the k'th Legendre Polynomial"
                     (* (1- l) x1-2))
                  l))
          (finally (return x1-0)))))))
-
-(defun build-main-lambda (n var)
-  (let ((syms (group (map1-n #'gensym (* 3 (1+ n))) 3))
-        (l (gensym)))
+(defmacro make-legendre (name &key ((:nth-derivative n) 0))
+  (alexandria:with-gensyms (x k l)
     (flet ((init-2 (k)
              (case k
                (0 1)
                (otherwise 0)))
            (init-1 (k)
              (case k
-               (0 var)
+               (0 x)
                (1 1)
                (otherwise 0))))
-      (iter
-        (for k upfrom 0)
-        (for (x-2 x-1 x-0) in syms)
-        (appending
-         `((for ,x-2 previous ,x-1 initially ,(init-2 k))
-           (for ,x-1 previous ,x-0 initally ,(init-1 k))
-           (for ,x-0 = (/ (- (* (1- (* 2 ,l)) (+ (* ,var ,x-1) ,@sofar))
-                             (* (1- ,l) ,x-2)) ,l))))
-        (collect x-1 into sofar at start)))))
+      `(defun ,name (,k)
+         (declare (optimize (speed 3))
+                  (sb-ext:muffle-conditions style-warning))
+         (case ,k
+           (0 (lambda (,x) ,(init-2 n)))
+           (1 (lambda (,x) ,(init-1 n)))
+           (otherwise
+            (lambda (,x)
+              (declare (double-float ,x))
+              (iter (for ,l from 2 to ,k)
+                ,@(let ((syms (group (map1-n #'gensym (* 3 (1+ n))) 3)))
+                    (iter
+                      (for k upfrom 0)
+                      (for (x-0 x-1 x-2) in syms)
+                      (appending
+                       `((for ,x-2 previous ,x-1 initially ,(init-2 k))
+                         (for ,x-1 previous ,x-0 initially ,(init-1 k))
+                         (for ,x-0 = (/ (- (* (1- (* 2 ,l)) (+ (* ,x ,x-1) ,@sofar))
+                                           (* (1- ,l) ,x-2)) ,l))) into acc)
+                      (collect x-1 into sofar at start)
+                      (finally (return (append acc `((finally (return ,(nth (* 3 n) (flatten syms))))))))))))))))))
 
-
-;; TODO
-;; There's an abstraction here for reducing the two (very) similar legendre functions, but I don't quite see it yet
-;; Maybe derive the legendre polynomials further and see if you find a pattern
-;; I'm assuming right now that each additional derivative adds one variable, aka one more line in the iter block
-;; see if that's correct, and if so, the complicated part is figuring out how to build a proper transform method for calculating the actual value
-;; each time you derive the expression, there's one term gets added to (+ (* x x1-1) x-1)
-;; (* x x-1) -> (+ (* x x1-1) x-1) -> (+ (* x x2-1) x1-1 x-1) ...
-;;
-;; => write a macro that (legendre n), n >= 0 that creates n+1 functions (legendre-0,..,legendre-n) that
-;; evaluate the polynomials using loops as above
+(make-legendre legendre-0)
+(make-legendre legendre-1 :nth-derivative 1)
 
 (defun fixed-point (f x0)
   (declare
