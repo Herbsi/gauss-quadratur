@@ -5,38 +5,38 @@
 
 (defmacro make-legendre (name &key ((:nth-derivative n) 0))
   (alexandria:with-gensyms (x k l)
-    (flet ((init-2 (k)
-             (case k
-               (0 1)
-               (otherwise 0)))
-           (init-1 (k)
-             (case k
-               (0 x)
-               (1 1)
-               (otherwise 0))))
-      `(defun ,name (,k)
-         (declare (sb-ext:muffle-conditions style-warning)
-                  (optimize (speed 3)))
-         (case ,k
-           (0 (lambda (,x) ,(init-2 n)))
-           (1 (lambda (,x) ,(init-1 n)))
-           (otherwise
-            (lambda (,x)
-              (declare (double-float ,x))
-              (iter (for ,l from 2 to ,k)
-                ,@(let ((syms (herwig:group (herwig:map1-n #'gensym (* 3 (1+ n))) 3)))
-                    (iter
+    (let* ((syms (herwig:group (herwig:map1-n #'gensym (* 3 (1+ n))) 3))
+           (return-x (nth (* 3 n) (alexandria:flatten syms))))
+      (flet ((init-2 (k)
+               (case k
+                 (0 1)
+                 (otherwise 0)))
+             (init-1 (k)
+               (case k
+                 (0 x)
+                 (1 1)
+                 (otherwise 0))))
+        `(defun ,name (,k)
+           (declare (sb-ext:muffle-conditions style-warning)
+                    (optimize (speed 3)))
+           (case ,k
+             (0 (lambda (,x) ,(init-2 n)))
+             (1 (lambda (,x) ,(init-1 n)))
+             (otherwise
+              (lambda (,x)
+                (declare (double-float ,x))
+                (iter (for ,l from 2 to ,k)
+                  ,@(iter
                       (for k upfrom 0)
                       (for (x-0 x-1 x-2) in syms)
                       (appending
                        `((for ,x-2 previous ,x-1 initially ,(init-2 k))
                          (for ,x-1 previous ,x-0 initially ,(init-1 k))
-                         (for ,x-0 = (/ (- (* (- (* 2.0d0 ,l) 1.0d0) (+ (* ,x ,x-1) ,@sofar))
-                                           (* (- ,l 1.0d0) ,x-2)) ,l))) into acc)
+                         (for ,x-0 = (/ (- (* (- (* 2 ,l) 1) (+ (* ,x ,x-1) ,@sofar))
+                                           (* (- ,l 1) ,x-2)) ,l))) into acc)
                       (collect x-1 into sofar at start)
-                      (finally (return (append acc
-                                               `((finally (return ,(nth (* 3 n)
-                                                                        (alexandria:flatten syms))))))))))))))))))
+                      (finally (return (append acc `((finally (return ,return-x))))))))))))))))
+;; TODO make make-legendre more readable
 
 (make-legendre legendre-0)
 (make-legendre legendre-1 :nth-derivative 1)
@@ -50,7 +50,6 @@
     (iter
       (repeat 100)
       (for y0 previous yk initially x0)
-      (format t "~& ~a ~%" y0)
       (for yk = (funcall f y0))
       (if (good-enough? yk y0) (return yk))
       (finally (return yk)))))
