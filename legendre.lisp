@@ -8,14 +8,9 @@
     (let* ((syms (herwig:group (herwig:map1-n #'gensym (* 3 (1+ n))) 3))
            (return-x (nth (* 3 n) (alexandria:flatten syms))))
       (flet ((init-2 (k)
-               (case k
-                 (0 1)
-                 (otherwise 0)))
+               (case k (0 1) (otherwise 0)))
              (init-1 (k)
-               (case k
-                 (0 x)
-                 (1 1)
-                 (otherwise 0))))
+               (case k (0 x) (1 1) (otherwise 0))))
         `(defun ,name (,k)
            (declare (sb-ext:muffle-conditions style-warning)
                     (optimize (speed 3)))
@@ -113,7 +108,7 @@
        (with ,gresult = (time (,int ,n-values)))
        (for ,gn in (list ,@n-values))
        (for (,gint . ,gerr) in ,gresult)
-       (format t "n: ~2,,d     int: ~,16E     err: ~,16E~%" ,gn ,gint ,gerr))))
+       (format t "n: ~2,,d     int: ~,16E     err: ~,4E~%" ,gn ,gint ,gerr))))
 
 (main herwig (2 4 8 16 32))
 (main joe (2 4 8 16 32))
