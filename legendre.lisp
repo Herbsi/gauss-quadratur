@@ -93,17 +93,23 @@
           (sum (* (funcall f root) weight)))))))
 
 (defmacro define-integrator (name fn var int-value)
-  (alexandria:with-gensyms (gint gfn)
-    `(defmacro ,name (supports)
-       (let ((,gint ,int-value))
-         (flet ((,gfn (,var) ,fn))
-           `(list ,@(mapcar (lambda (n)
-                              (let* ((int (funcall (gauss-quadratur n) #',gfn))
-                                     (err (abs (- int ,gint))))
-                                `(cons ,int ,err)))
-                            supports)))))))
+  (alexandria:with-gensyms (n int err supports)
+    `(defmacro ,name (,supports)
+       `(list ,@(mapcar (lambda (,n)
+                          (let* ((,int (funcall (gauss-quadratur ,n) (lambda (,var) ,fn)))
+                                 (,err (abs (- ,int ,int-value))))
+                            `(cons ,,int ,,err)))
+                        ,supports)))))
 
-(define-integrator herwig (log (+ x 2)) x (- (log 27.0d0) 2))
+(defmacro herwig (#:supports718)
+  `(list
+    ,@(mapcar
+       (lambda (#:n715)
+         (let* ((#:int716
+                 (funcall (gauss-quadratur #:n715) (lambda (x) (log (+ x 2)))))
+                (#:err717 (abs (- #:int716 (- (log 27.0d0) 2)))))
+           `(cons ,#:int716 ,#:err717)))
+       #:supports718)))
 (define-integrator joe (/ 1 (+ 2 x)) x (log 3.0d0))
 
 (defmacro main (int n-values)
@@ -114,5 +120,7 @@
        (for (,gint . ,gerr) in ,gresult)
        (format t "n: ~2,,d     int: ~,16E     err: ~,4E~%" ,gn ,gint ,gerr))))
 
+;; all calculations at compile time: (reset gauss-quadratur first)
+;; (time (mapcar #'(lambda (n) (funcall (gauss-quadratur n) (lambda (x) (log (+ x 2.0d0))))) '(2 4 8 16)))
 (main herwig (2 4 8 16 32))
 (main joe (2 4 8 16 32))
