@@ -12,8 +12,7 @@
              (init-1 (k)
                (case k (0 x) (1 1) (otherwise 0))))
         `(defun ,name (,k)
-           (declare (sb-ext:muffle-conditions style-warning)
-                    (optimize (speed 3)))
+           (declare (sb-ext:muffle-conditions style-warning))
            (case ,k
              (0 (lambda (,x) ,(init-2 n)))
              (1 (lambda (,x) ,(init-1 n)))
@@ -27,11 +26,16 @@
                       (appending
                        `((for ,x-2 previous ,x-1 initially ,(init-2 k))
                          (for ,x-1 previous ,x-0 initially ,(init-1 k))
-                         (for ,x-0 = (/ (- (* (- (* 2 ,l) 1) (+ (* ,x ,x-1) ,@sofar))
+                         (for ,x-0 = (/ (- (* (- (* 2 ,l) 1)
+                                              ;; this if prevents minimal calculation errors
+                                              ;; that occur from floating point multiplication not being
+                                              ;; associative
+                                              ,@(if (consp sofar)
+                                                    `((+ (* ,x ,x-1) ,@sofar))
+                                                    `(,x ,x-1)))
                                            (* (- ,l 1) ,x-2)) ,l))) into acc)
                       (collect x-1 into sofar at start)
                       (finally (return (append acc `((finally (return ,return-x))))))))))))))))
-;; TODO make make-legendre more readable
 
 (make-legendre legendre-0)
 (make-legendre legendre-1 :nth-derivative 1)
