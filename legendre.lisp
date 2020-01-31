@@ -50,7 +50,7 @@
       (repeat 100)
       (for y0 previous yk initially x0)
       (for yk = (funcall f y0))
-      (if (good-enough? yk y0) (return yk))
+      (if (good-enough? yk y0) (finish))
       (finally (return yk)))))
 
 (defun newton-method (f df x0)
@@ -62,19 +62,20 @@
 (defun legendre-roots (n)
   (iter
     (for k from 0 to n)
+    (with lp = (legendre-0 (1+ n)))
+    (with lp-1 = (legendre-1 (1+ n)))
     (for x0 = (cos (/ (* (+ (* 4 k) 3) pi)
                       (+ (* 4 n) 6))))
-    (collect (newton-method (legendre-0 (1+ n))
-                            (legendre-1 (1+ n))
-                            x0))))
+    (collect (newton-method lp lp-1 x0))))
 
 (defun integration-weights (roots)
   (iter
     (for xk in roots)
     (with n = (1- (length roots)))
+    (with lp = (legendre-0 n))
     (collect (/ (* 2 (- 1 (expt xk 2)))
                 (* (expt (+ n 1) 2)
-                   (expt (funcall (legendre-0 n) xk) 2))))))
+                   (expt (funcall lp xk) 2))))))
 
 (defmacro lookup (table n set-if-not-found)
   `(if (gethash ,n ,table)
@@ -93,26 +94,29 @@
           (sum (* (funcall f root) weight)))))))
 
 (defmacro define-integrator (name fn var int-value)
-  (alexandria:with-gensyms (gint gfn)
-    `(defmacro ,name (supports)
-       (let ((,gint ,int-value))
-         (flet ((,gfn (,var) ,fn))
-           `(list ,@(mapcar (lambda (n)
-                              (let* ((int (funcall (gauss-quadratur n) #',gfn))
-                                     (err (abs (- int ,gint))))
-                                `(cons ,int ,err)))
-                            supports)))))))
+  (alexandria:with-gensyms (n int err supports)
+    `(defmacro ,name (,supports)
+       `(list ,@(mapcar (lambda (,n)
+                          (let* ((,int (funcall (gauss-quadratur ,n) (lambda (,var) ,fn)))
+                                 (,err (abs (- ,int ,int-value))))
+                            `(cons ,,int ,,err)))
+                        ,supports)))))
 
 (define-integrator herwig (log (+ x 2)) x (- (log 27.0d0) 2))
 (define-integrator joe (/ 1 (+ 2 x)) x (log 3.0d0))
 
-(defmacro main (int n-values)
+(defmacro main (integrator n-values)
   (alexandria:with-gensyms (gn gresult gint gerr)
     `(iter
-       (with ,gresult = (time (,int ,n-values)))
+       (with ,gresult = (time (,integrator ,n-values)))
        (for ,gn in (list ,@n-values))
        (for (,gint . ,gerr) in ,gresult)
        (format t "n: ~2,,d     int: ~,16E     err: ~,4E~%" ,gn ,gint ,gerr))))
 
+;; all calculations at run time: (reset gauss-quadratur first)
+(time (mapcar (lambda (n) (funcall (gauss-quadratur n) (lambda (x) (log (+ x 2.0d0))))) '(2 4 8 16)))
+
+;; at compile time:
 (main herwig (2 4 8 16 32))
 (main joe (2 4 8 16 32))
+
